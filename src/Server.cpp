@@ -53,7 +53,10 @@ int main(int argc, char **argv) {
   std::cout << "Client connected\n";
 
   const char* message = "+PONG\r\n";
-  send(server_fd, message, strlen(message), 0);
+  if(send(server_fd, message, strlen(message), 0) < 0) {
+    std::cerr << "Error on send";
+    return 1;
+  }
   
   close(server_fd);
 
