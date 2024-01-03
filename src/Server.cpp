@@ -45,8 +45,15 @@ int main(int argc, char **argv) {
   
   std::cout << "Waiting for a client to connect...\n";
   
-  accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
+  int new_socket_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
+  if(new_socket_fd < 0) {
+    std::cout << "Error on accept new connection";
+    return 1;
+  }
   std::cout << "Client connected\n";
+
+  const char* message = "+PONG\r\n";
+  send(server_fd, message, strlen(message), 0);
   
   close(server_fd);
 
