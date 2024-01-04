@@ -59,8 +59,8 @@ int main(int argc, char **argv)
     return 1;
   }
   std::cout << "Client connected\n";
-
-  while (true)
+  bool isConnected = true;
+  while (isConnected)
   {
     char msg[MSG_SIZE_MAX];
     ssize_t bytes_read = recv(new_socket_fd, msg, MSG_SIZE_MAX, 0);
@@ -68,13 +68,15 @@ int main(int argc, char **argv)
     if (bytes_read < 0)
     {
       std::cout << "Client disconneted";
+      isConnected = false;
       break;
     }
     const char *message = "+PONG\r\n";
     if (send(new_socket_fd, message, strlen(message), 0) < 0)
     {
       std::cerr << "Error on send";
-      return 1;
+      isConnected = false;
+      break;
     }
   }
 
