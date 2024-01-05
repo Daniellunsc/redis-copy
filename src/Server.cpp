@@ -11,71 +11,128 @@
 #include <netdb.h>
 #include "sstream"
 #include <algorithm>
+#include <unordered_map>
 
 const int MSG_SIZE_MAX = 1024;
 
-void debugRawMessage(char message[]) {
-  std::cout << "New message\n" << std::endl;
+std::unordered_map<std::string, std::string> database;
+
+void debugRawMessage(char message[])
+{
+  std::cout << "New message\n"
+            << std::endl;
   std::cout << message << std::endl;
   std::cout << "------------------------" << std::endl;
 }
 
-void debugParsedMessage(std::vector<std::string> parsed_message) {
+void debugParsedMessage(std::vector<std::string> parsed_message)
+{
   std::string command(parsed_message[2]);
   std::string value(parsed_message[4]);
   std::cout << "command: " << std::endl;
   std::cout << command << std::endl;
   std::cout << "value: " << std::endl;
   std::cout << value << std::endl;
+  std::cout << "extra args: " << std::endl;
+  for (int i = 6; i <= parsed_message.size(); i += 2)
+  {
+    std::cout << "index: " << i << " " << parsed_message[i] << std::endl;
+  }
 }
 
-std::string to_lower_case(std::string str) {
+std::string to_lower_case(std::string str)
+{
   std::transform(str.begin(), str.end(), str.begin(), ::tolower);
   return str;
 }
 
-const char* serialize_message(std::string message) {
-  std::string* serialized_message = new std::string("+" + message + "\r\n");
+const char *serialize_message(std::string message)
+{
+  std::string *serialized_message = new std::string("+" + message + "\r\n");
   return serialized_message->c_str();
 }
 
-int send_message(std::string message, int client_socket) {
+int send_message(std::string message, int client_socket)
+{
   const char *message_serialized = serialize_message(message);
   if (send(client_socket, message_serialized, strlen(message_serialized), 0) == -1)
-    {
-      std::cerr << "Error on send";
-      return -1;
-    }
+  {
+    std::cerr << "Error on send";
+    return -1;
+  }
   return 0;
 }
 
-int parse_message(ssize_t bytes_received, char message[], int client_socket) {
-  //debugRawMessage(message);
+void ping_command(std::vector<std::string> parsed_message, int client_socket)
+{
+  std::string message("PONG");
+  send_message(message, client_socket);
+}
+
+void echo_command(std::vector<std::string> parsed_message, int client_socket)
+{
+  std::string message(parsed_message[4]);
+  send_message(message, client_socket);
+}
+
+void set_command(std::vector<std::string> parsed_message, int client_socket)
+{
+  std::string key(parsed_message[4]);
+  std::string value(parsed_message[6]);
+  database[key] = value;
+  send_message("OK", client_socket);
+}
+
+void get_command(std::vector<std::string> parsed_message, int client_socket) {
+  std::string key(parsed_message[4]);
+  std::string value = database[key];
+  if(!value.empty()) {
+    send_message(value, client_socket);
+    return;
+  }
+  send_message("NULL", client_socket);
+}
+
+int parse_message(ssize_t bytes_received, char message[], int client_socket)
+{
+  // debugRawMessage(message);
   std::string line = "", delimiter = "\r\n";
   int index = 0;
   std::string input(message);
   std::vector<std::string> output;
-  while(index < input.length()) {
-    if( input.substr(index, 2) == delimiter) {
+  while (index < input.length())
+  {
+    if (input.substr(index, 2) == delimiter)
+    {
       output.push_back(line);
       line = "";
       index += 2;
     }
     line += input[index];
-    index ++;
+    index++;
   }
 
   //debugParsedMessage(output);
   std::string command(to_lower_case(output[2]));
-  
-  if(command == "ping") {
-    std::string message("PONG");
-    return send_message(message, client_socket);
-  } else if(command == "echo") {
-    std::string value(output[4]);
-    return send_message(value, client_socket);
-  } else if(command == "command") {
-    return send_message("", client_socket);
+  if (command == "ping")
+  {
+    ping_command(output, client_socket);
+  }
+  else if (command == "echo")
+  {
+    echo_command(output, client_socket);
+  }
+  else if (command == "set")
+  {
+    set_command(output, client_socket);
+  }
+  else if (command == "get")
+  {
+    get_command(output, client_socket);
+  }
+  else
+  {
+    send_message("Command not found", client_socket);
   }
   return 0;
 }
@@ -86,7 +143,6 @@ void listen_to_client(int socket_fd)
   bool isConnected = true;
   while (isConnected)
   {
-    std::cerr << "connection status " << isConnected << std::endl;
     char msg[MSG_SIZE_MAX];
     ssize_t bytes_read = recv(socket_fd, msg, MSG_SIZE_MAX, 0);
 
@@ -95,12 +151,14 @@ void listen_to_client(int socket_fd)
       std::cout << "Client disconneted";
       isConnected = false;
       break;
-    } else if (bytes_read == 0) {
+    }
+    else if (bytes_read == 0)
+    {
       std::cout << "Client disconnected" << std::endl;
       isConnected = false;
       break;
     }
-    
+
     if (parse_message(bytes_read, msg, socket_fd) != 0)
     {
       std::cerr << "Error on send";
@@ -153,7 +211,8 @@ int main(int argc, char **argv)
   std::cout << "Waiting for a client to connect...\n";
 
   int new_socket_fd;
-  while((new_socket_fd = accept(server_fd, (struct sockaddr *)&client_addr, (socklen_t *)&client_addr_len)) != -1 ) {
+  while ((new_socket_fd = accept(server_fd, (struct sockaddr *)&client_addr, (socklen_t *)&client_addr_len)) != -1)
+  {
     std::thread t(listen_to_client, new_socket_fd);
     t.detach();
   }
