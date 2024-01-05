@@ -4,6 +4,10 @@
 #include <algorithm>
 #include <unordered_map>
 #include <chrono>
+#include "Config.h"
+#include "Protocol.h"
+#include "Utils.h"
+#include <cstring>
 
 namespace Commands
 {
@@ -67,5 +71,46 @@ namespace Commands
       return;
     }
     Socket::raw_send(client_socket, "$-1\r\n", 5);
+  }
+
+  void config(std::vector<std::string> parsed_message, int client_socket)
+  {
+    std::string command(parsed_message[4]);
+    if(command.empty()) {
+      Socket::send_message(client_socket, "ERR Unsupported CONFIG parameter");
+      return;
+    }
+    if (command == "get")
+    {
+      std::string key(parsed_message[6]);
+      std::string value = Config::get_config(key);
+
+      if(value.empty()) {
+        Socket::send_message(client_socket, "ERR Unsupported CONFIG parameter");
+        return;
+      }
+      std::string message = "*2\r\n";
+      Protocol::encode_message(message, key);
+      Protocol::encode_message(message, value);
+      std::string *message_encoded = new std::string(message);
+      Socket::raw_send(client_socket, message_encoded->c_str(), strlen(message_encoded->c_str()));
+      return;
+    }
+    else if (command == "set")
+    {
+      std::string parameter(parsed_message[6]);
+      if (parameter == "timeout")
+      {
+        Socket::send_message(client_socket, "OK");
+      }
+      else
+      {
+        Socket::send_message(client_socket, "ERR Unsupported CONFIG parameter");
+      }
+    }
+    else
+    {
+      Socket::send_message(client_socket, "ERR Unsupported CONFIG parameter");
+    }
   }
 } // namespace Commands

@@ -1,4 +1,6 @@
 #include <vector>
+#include <string>
+#include <chrono>
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
@@ -8,6 +10,7 @@ namespace Commands{
   void ping(std::vector<std::string> parsed_message, int client_socket);
   void set(std::vector<std::string> parsed_message, int client_socket);
   void get(std::vector<std::string> parsed_message, int client_socket);
+  void config(std::vector<std::string> parsed_message, int client_socket);
 }
 
 #endif

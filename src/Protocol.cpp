@@ -8,6 +8,12 @@ namespace Protocol
     return serialized_message->c_str();
   }
 
+  std::string encode_message(std::string &message, std::string &str_to_encode)
+  {
+    message += "$" + std::to_string(str_to_encode.length()) + "\r\n" + str_to_encode + "\r\n";
+    return message;
+  }
+  
   std::vector<std::string> deserialize_message(char message[])
   {
     std::string line = "", delimiter = "\r\n";

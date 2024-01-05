@@ -16,6 +16,7 @@
 #include "Utils.h"
 #include "Socket.h"
 #include "CommandHandler.h"
+#include "Config.h"
 
 const int MSG_SIZE_MAX = 1024;
 
@@ -54,6 +55,7 @@ void listen_to_client(int socket_fd)
 int main(int argc, char **argv)
 {
   // You can use print statements as follows for debugging, they'll be visible when running tests.
+  Config::map_arg_to_config(argc, argv);
   std::cout << "Logs from your program will appear here!\n";
 
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);

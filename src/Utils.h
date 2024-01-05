@@ -1,6 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 #include <vector>
+#include <string>
 
 namespace Utils {
   void debugRawMessage(char message[]);

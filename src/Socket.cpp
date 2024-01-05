@@ -4,6 +4,7 @@
 #include "Protocol.h"
 #include "Utils.h"
 #include "CommandHandler.h"
+#include <cstring>
 
 namespace Socket
 {

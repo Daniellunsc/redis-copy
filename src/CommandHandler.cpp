@@ -21,6 +21,8 @@ namespace CommandHandler
     else if (command == "get")
     {
       Commands::get(output, client_socket);
+    } else if (command == "config") {
+      Commands::config(output, client_socket);
     }
     else
     {
