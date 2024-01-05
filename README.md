@@ -1,34 +1,14 @@
-[![progress-banner](https://backend.codecrafters.io/progress/redis/7bda28df-0ac1-47ea-9f18-2ad9ab8d0af0)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
-
-This is a starting point for C++ solutions to the
+This is a dummy Redis copy made in C++ following
 ["Build Your Own Redis" Challenge](https://codecrafters.io/challenges/redis).
 
-In this challenge, you'll build a toy Redis clone that's capable of handling
-basic commands like `PING`, `SET` and `GET`. Along the way we'll learn about
-event loops, the Redis protocol and more.
+To put it running, you can run `./spawn_redis.sh` and it will start this dummy C++ redis.
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+After that, you can connect your redis client to `localhost:6379` and start playing with it.
 
-# Passing the first stage
+Actually it only works in-memory without storing anything in disk.
 
-The entry point for your Redis implementation is in `src/Server.cpp`. Study and
-uncomment the relevant code, and push your changes to pass the first stage:
+## Commands implemented
 
-```sh
-git add .
-git commit -m "pass 1st stage" # any msg
-git push origin master
-```
-
-That's all!
-
-# Stage 2 & beyond
-
-Note: This section is for stages 2 and beyond.
-
-1. Ensure you have `cmake` installed locally
-1. Run `./spawn_redis_server.sh` to run your Redis server, which is implemented
-   in `src/Server.cpp`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+- [x] `PING`
+- [x] `SET` with `PX` option
+- [x] `GET`
