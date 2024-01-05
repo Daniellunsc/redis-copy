@@ -12,10 +12,19 @@
 #include "sstream"
 #include <algorithm>
 #include <unordered_map>
+#include <chrono>
+
 
 const int MSG_SIZE_MAX = 1024;
 
 std::unordered_map<std::string, std::string> database;
+std::unordered_map<std::string, std::chrono::high_resolution_clock::duration> database_expirations;
+
+void set_database_expiration(std::string key, std::chrono::high_resolution_clock::duration expiration) {
+  std::cout << "Setting expiration: " << key << std::endl;
+  auto expiry_time = std::chrono::high_resolution_clock::now().time_since_epoch() + expiration;
+  database_expirations.insert_or_assign(key, expiry_time);
+}
 
 void debugRawMessage(char message[])
 {
@@ -79,7 +88,16 @@ void set_command(std::vector<std::string> parsed_message, int client_socket)
 {
   std::string key(parsed_message[4]);
   std::string value(parsed_message[6]);
-  database[key] = value;
+  if(value.empty() || value == "") {
+    send_message("INVALID VALUE", client_socket);
+    return;
+  }
+  if(parsed_message[8] == "px" && !parsed_message[10].empty()) {
+    int expiration_ms = std::stoi(parsed_message[10]);
+    set_database_expiration(key, std::chrono::milliseconds(expiration_ms));
+    std::cout << "Expiration set: " << key << std::endl; 
+  }
+  database.insert_or_assign(key, value);
   send_message("OK", client_socket);
 }
 
@@ -87,10 +105,18 @@ void get_command(std::vector<std::string> parsed_message, int client_socket) {
   std::string key(parsed_message[4]);
   std::string value = database[key];
   if(!value.empty()) {
+    auto now = std::chrono::high_resolution_clock::now().time_since_epoch();
+    if(database_expirations.contains(key) && (now >= database_expirations.at(key))) {
+      database.erase(key);
+      database_expirations.erase(key);
+      std::cout << "Key expired: " << key << std::endl;
+      send(client_socket, "$-1\r\n", 5, 0);
+      return;
+    }
     send_message(value, client_socket);
     return;
   }
-  send_message("NULL", client_socket);
+  send(client_socket, "$-1\r\n", 5, 0);
 }
 
 int parse_message(ssize_t bytes_received, char message[], int client_socket)
@@ -111,11 +137,11 @@ int parse_message(ssize_t bytes_received, char message[], int client_socket)
     line += input[index];
     index++;
   }
-
-  //debugParsedMessage(output);
+  debugParsedMessage(output);
   std::string command(to_lower_case(output[2]));
   if (command == "ping")
   {
+    output.clear();
     ping_command(output, client_socket);
   }
   else if (command == "echo")
@@ -164,6 +190,7 @@ void listen_to_client(int socket_fd)
       std::cerr << "Error on send";
       break;
     }
+    bzero(msg, MSG_SIZE_MAX);
   }
   close(socket_fd);
 }
