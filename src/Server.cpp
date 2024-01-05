@@ -1,4 +1,6 @@
 #include <iostream>
+#include <thread>
+#include <vector>
 #include <cstdlib>
 #include <string>
 #include <cstring>
@@ -9,6 +11,36 @@
 #include <netdb.h>
 
 const int MSG_SIZE_MAX = 1024;
+
+void listen_to_client(int socket_fd)
+{
+  std::cout << "Client connected\n";
+  bool isConnected = true;
+  while (isConnected)
+  {
+    char msg[MSG_SIZE_MAX];
+    ssize_t bytes_read = recv(socket_fd, msg, MSG_SIZE_MAX, 0);
+
+    if (bytes_read < 0)
+    {
+      std::cout << "Client disconneted";
+      isConnected = false;
+      exit(1);
+    } else if (bytes_read == 0) {
+      isConnected = false;
+      break;
+    }
+
+    const char *message = "+PONG\r\n";
+    if (send(socket_fd, message, strlen(message), 0) == -1)
+    {
+      std::cerr << "Error on send";
+      isConnected = false;
+      exit(1);
+    }
+  }
+  close(socket_fd);
+}
 
 int main(int argc, char **argv)
 {
@@ -52,32 +84,10 @@ int main(int argc, char **argv)
 
   std::cout << "Waiting for a client to connect...\n";
 
-  int new_socket_fd = accept(server_fd, (struct sockaddr *)&client_addr, (socklen_t *)&client_addr_len);
-  if (new_socket_fd < 0)
-  {
-    std::cout << "Error on accept new connection";
-    return 1;
-  }
-  std::cout << "Client connected\n";
-  bool isConnected = true;
-  while (isConnected)
-  {
-    char msg[MSG_SIZE_MAX];
-    ssize_t bytes_read = recv(new_socket_fd, msg, MSG_SIZE_MAX, 0);
-
-    if (bytes_read < 0)
-    {
-      std::cout << "Client disconneted";
-      isConnected = false;
-      break;
-    }
-    const char *message = "+PONG\r\n";
-    if (send(new_socket_fd, message, strlen(message), 0) < 0)
-    {
-      std::cerr << "Error on send";
-      isConnected = false;
-      break;
-    }
+  int new_socket_fd;
+  while((new_socket_fd = accept(server_fd, (struct sockaddr *)&client_addr, (socklen_t *)&client_addr_len)) != -1 ) {
+    std::thread t(listen_to_client, new_socket_fd);
+    t.detach();
   }
 
   close(server_fd);
